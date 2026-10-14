@@ -2,7 +2,7 @@
 
 A responsive e-commerce sales dashboard built with React, TypeScript and Tailwind CSS.
 
-**Live demo:** _add your Vercel/Netlify URL here_
+**Live demo:** (https://sales-dashboard-peach-theta.vercel.app/)
 
 ## Features
 
