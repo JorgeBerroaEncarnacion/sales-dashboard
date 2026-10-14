@@ -1,23 +1,23 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
-import type { SortDirection, SortKey } from '../types'
+import type { SortDirection } from '../types'
 
-interface SortableHeaderProps {
+interface SortableHeaderProps<K extends string> {
   label: string
-  sortKey: SortKey
-  activeKey: SortKey
+  sortKey: K
+  activeKey: K
   direction: SortDirection
-  onSort: (key: SortKey) => void
+  onSort: (key: K) => void
   align?: 'left' | 'right'
 }
 
-export default function SortableHeader({
+export default function SortableHeader<K extends string>({
   label,
   sortKey,
   activeKey,
   direction,
   onSort,
   align = 'left',
-}: SortableHeaderProps) {
+}: SortableHeaderProps<K>) {
   const active = sortKey === activeKey
   const Icon = !active ? ArrowUpDown : direction === 'asc' ? ArrowUp : ArrowDown
 

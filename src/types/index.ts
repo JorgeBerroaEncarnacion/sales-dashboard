@@ -10,5 +10,14 @@ export interface Order {
   status: OrderStatus
 }
 
-export type SortKey = 'date' | 'amount' | 'customer'
+export type ProductCategory = 'Audio' | 'Peripherals' | 'Displays' | 'Furniture' | 'Storage' | 'Accessories'
+
+export interface Product {
+  id: string
+  name: string
+  category: ProductCategory
+  price: number
+  stock: number
+}
+
 export type SortDirection = 'asc' | 'desc'

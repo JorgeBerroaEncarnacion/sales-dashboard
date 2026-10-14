@@ -6,17 +6,26 @@ A responsive e-commerce sales dashboard built with React, TypeScript and Tailwin
 
 ## Features
 
-- **Responsive sidebar** — fixed on desktop, slide-in drawer with backdrop on mobile
-- **Header** with notifications and user/profile section
-- **4 statistic cards** (revenue, orders, customers, average order value) computed from the data, with month-over-month trend
-- **Orders table** with:
-  - Search across order ID, customer, email and product
-  - Status filter (segmented control on desktop, select on mobile)
-  - Sorting by customer, date and amount
-  - Pagination
-  - Empty state with "clear filters"
-  - Card layout on mobile instead of a cramped table
-- Accessible markup: semantic landmarks, `aria-sort`, `aria-pressed`, labelled controls
+Seven pages with client-side routing (React Router):
+
+| Page | What it shows |
+|------|---------------|
+| **Dashboard** | 4 stat cards (revenue, orders, customers, average order value) with month-over-month trend, and the recent orders table |
+| **Orders** | Order count per status and the full orders table |
+| **Products** | Inventory summary and product catalog with stock badges, units sold and revenue, filterable by category |
+| **Customers** | Customers derived from orders, with order count, total spent and last order date |
+| **Analytics** | Daily revenue bar chart with tooltips and a table view, top products and orders by status |
+| **Settings** | Profile, store and notification preferences with validation, save and cancel |
+| **Help** | Searchable FAQ accordion and a contact card |
+
+Plus a 404 page for unknown routes.
+
+Shared across pages:
+
+- **Responsive sidebar** — fixed on desktop, slide-in drawer with backdrop on mobile that closes after navigating
+- **Header** with the current page title, notifications and user/profile section
+- **One reusable `DataTable`** used by Orders, Products and Customers: search, filter, column sorting, pagination, empty state, and a card layout on mobile instead of a cramped table
+- Accessible markup: semantic landmarks, `aria-current`, `aria-sort`, `aria-pressed`, labelled controls, keyboard-friendly chart tooltips
 
 ## Tech stack
 
@@ -24,9 +33,10 @@ A responsive e-commerce sales dashboard built with React, TypeScript and Tailwin
 - [TypeScript](https://www.typescriptlang.org)
 - [Vite](https://vite.dev)
 - [Tailwind CSS v4](https://tailwindcss.com)
+- [React Router](https://reactrouter.com) for client-side routing
 - [lucide-react](https://lucide.dev) for icons
 
-No backend: the app uses static sample data from `src/data/orders.ts`.
+No backend: the app uses static sample data from `src/data/`.
 
 ## Getting started
 
@@ -43,30 +53,47 @@ npm run preview   # preview the production build locally
 
 ```
 src/
+├── pages/                    # One component per route
+│   ├── DashboardPage.tsx
+│   ├── OrdersPage.tsx
+│   ├── ProductsPage.tsx
+│   ├── CustomersPage.tsx
+│   ├── AnalyticsPage.tsx
+│   ├── SettingsPage.tsx
+│   ├── HelpPage.tsx
+│   └── NotFoundPage.tsx
 ├── components/
-│   ├── Sidebar.tsx          # Responsive navigation (desktop + mobile drawer)
-│   ├── Header.tsx           # Top bar with notifications and profile
-│   ├── StatCard.tsx         # Reusable metric card with trend indicator
-│   ├── OrdersTable.tsx      # Table/card list composition
-│   ├── TableToolbar.tsx     # Search input and status filter
-│   ├── SortableHeader.tsx   # Reusable sortable column header
-│   ├── Pagination.tsx       # Page navigation and result count
-│   ├── StatusBadge.tsx      # Colored order status pill
-│   └── EmptyState.tsx       # Shown when no results match
+│   ├── Layout.tsx            # Sidebar + header + <Outlet /> for the active page
+│   ├── Sidebar.tsx           # Responsive navigation (desktop + mobile drawer)
+│   ├── Header.tsx            # Page title, notifications and profile
+│   ├── DataTable.tsx         # Generic table: columns, sorting, pagination, mobile cards
+│   ├── TableToolbar.tsx      # Search input and optional filter
+│   ├── SortableHeader.tsx    # Sortable column header
+│   ├── Pagination.tsx
+│   ├── OrdersTable.tsx       # Orders configuration of DataTable
+│   ├── RevenueChart.tsx      # Bar chart with tooltips and table view
+│   ├── BarList.tsx           # Ranked horizontal bars
+│   ├── StatCard.tsx, Card.tsx, Badge.tsx, StatusBadge.tsx,
+│   └── Avatar.tsx, Toggle.tsx, EmptyState.tsx
 ├── hooks/
-│   ├── useOrderFilters.ts   # Search, filter, sort and pagination logic
-│   └── useDashboardStats.ts # Derives stat-card values from the orders
-├── data/orders.ts           # Static sample data
-├── types/index.ts           # Shared TypeScript types
-├── utils/format.ts          # Currency, date and percentage helpers
-├── App.tsx                  # Page layout
-└── main.tsx                 # Entry point
+│   ├── useTable.ts           # Generic search, filter, sort and pagination state
+│   └── useDashboardStats.ts  # Derives stat-card values from the orders
+├── data/
+│   ├── orders.ts             # Static sample orders
+│   ├── products.ts           # Static product catalog
+│   └── selectors.ts          # Pure functions: customers, product sales, daily revenue
+├── routes.ts                 # Route list shared by the sidebar and the header
+├── types/index.ts
+├── utils/                    # Formatting and status helpers
+├── App.tsx                   # Route definitions
+└── main.tsx
 ```
 
 ### Design decisions
 
-- **Logic lives in hooks, rendering lives in components.** `useOrderFilters` owns all table state, so `OrdersTable` stays a thin presentational layer and the logic can be reused or tested on its own.
-- **Stats are derived, not hard-coded.** Changing the sample data updates the cards automatically.
+- **Logic lives in hooks, rendering lives in components.** `useTable` owns all table state and is generic, so the three tables share one implementation and differ only in their column configuration.
+- **Data is derived, not duplicated.** Customers, product sales, stats and chart data are computed from the orders, so changing the sample data updates every page.
+- **One route list.** `routes.ts` drives both the sidebar links and the header title, so adding a page means touching a single place.
 - **Mobile-first table.** Below the `md` breakpoint the table becomes a stacked card list, which is easier to read than horizontal scrolling.
 
 ## Deployment
@@ -77,8 +104,12 @@ src/
 2. In Vercel, click **Add New → Project** and import the repository.
 3. Vercel detects Vite automatically (build command `npm run build`, output directory `dist`). Click **Deploy**.
 
+`vercel.json` rewrites every path to `index.html`, so refreshing a page like `/orders` works.
+
 ### Netlify
 
 1. Push the repository to GitHub.
 2. In Netlify, click **Add new site → Import an existing project** and select the repository.
 3. Set the build command to `npm run build` and the publish directory to `dist`, then deploy.
+
+`public/_redirects` does the same SPA fallback on Netlify.

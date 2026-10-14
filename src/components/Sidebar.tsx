@@ -1,58 +1,37 @@
-import {
-  BarChart3,
-  HelpCircle,
-  LayoutDashboard,
-  Package,
-  Settings,
-  ShoppingCart,
-  Users,
-  X,
-  type LucideIcon,
-} from 'lucide-react'
-
-interface NavItem {
-  label: string
-  icon: LucideIcon
-  active?: boolean
-}
-
-const mainNav: NavItem[] = [
-  { label: 'Dashboard', icon: LayoutDashboard, active: true },
-  { label: 'Orders', icon: ShoppingCart },
-  { label: 'Products', icon: Package },
-  { label: 'Customers', icon: Users },
-  { label: 'Analytics', icon: BarChart3 },
-]
-
-const secondaryNav: NavItem[] = [
-  { label: 'Settings', icon: Settings },
-  { label: 'Help', icon: HelpCircle },
-]
+import { BarChart3, X } from 'lucide-react'
+import { Link, NavLink } from 'react-router-dom'
+import { navRoutes, type NavRoute } from '../routes'
 
 interface SidebarProps {
   open: boolean
   onClose: () => void
 }
 
-function NavLink({ item }: { item: NavItem }) {
-  const Icon = item.icon
+function SidebarLink({ route, onNavigate }: { route: NavRoute; onNavigate: () => void }) {
+  const Icon = route.icon
   return (
-    <a
-      href="#"
-      aria-current={item.active ? 'page' : undefined}
-      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-        item.active
-          ? 'bg-indigo-50 text-indigo-700'
-          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-      }`}
+    <NavLink
+      to={route.path}
+      end={route.path === '/'}
+      onClick={onNavigate}
+      className={({ isActive }) =>
+        `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+          isActive
+            ? 'bg-indigo-50 text-indigo-700'
+            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+        }`
+      }
     >
       <Icon className="size-4.5 shrink-0" aria-hidden="true" />
-      {item.label}
-    </a>
+      {route.label}
+    </NavLink>
   )
 }
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
+  const main = navRoutes.filter((r) => r.section === 'main')
+  const secondary = navRoutes.filter((r) => r.section === 'secondary')
+
   return (
     <>
       {/* Backdrop on mobile when the drawer is open */}
@@ -71,12 +50,12 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         aria-label="Main navigation"
       >
         <div className="flex h-16 items-center justify-between px-5">
-          <div className="flex items-center gap-2.5">
+          <Link to="/" onClick={onClose} className="flex items-center gap-2.5">
             <div className="flex size-8 items-center justify-center rounded-lg bg-indigo-600">
               <BarChart3 className="size-4.5 text-white" aria-hidden="true" />
             </div>
             <span className="text-base font-semibold">ShopPulse</span>
-          </div>
+          </Link>
           <button
             type="button"
             onClick={onClose}
@@ -92,13 +71,13 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             <p className="px-3 pb-2 text-xs font-semibold tracking-wider text-slate-400 uppercase">
               Menu
             </p>
-            {mainNav.map((item) => (
-              <NavLink key={item.label} item={item} />
+            {main.map((route) => (
+              <SidebarLink key={route.path} route={route} onNavigate={onClose} />
             ))}
           </div>
           <div className="space-y-1 border-t border-slate-100 pt-4">
-            {secondaryNav.map((item) => (
-              <NavLink key={item.label} item={item} />
+            {secondary.map((route) => (
+              <SidebarLink key={route.path} route={route} onNavigate={onClose} />
             ))}
           </div>
         </nav>

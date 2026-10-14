@@ -1,100 +1,101 @@
-import { useOrderFilters } from '../hooks/useOrderFilters'
-import type { Order } from '../types'
+import { useTable } from '../hooks/useTable'
+import type { Order, OrderStatus } from '../types'
 import { formatCurrency, formatDate } from '../utils/format'
-import EmptyState from './EmptyState'
-import Pagination from './Pagination'
-import SortableHeader from './SortableHeader'
+import DataTable, { type Column } from './DataTable'
 import StatusBadge from './StatusBadge'
-import TableToolbar from './TableToolbar'
+import type { ReactNode } from 'react'
 
-export default function OrdersTable({ orders }: { orders: Order[] }) {
-  const filters = useOrderFilters(orders)
-  const { pageItems, sortKey, sortDirection, toggleSort } = filters
+type OrderSortKey = 'customer' | 'date' | 'amount'
+
+const statuses: OrderStatus[] = ['Paid', 'Pending', 'Shipped', 'Refunded']
+
+// Defined at module level so the table hook's memoization stays stable between renders.
+const searchFields = (o: Order) => [o.id, o.customer, o.email, o.product]
+const filterBy = (o: Order) => o.status
+const sortAccessors: Record<OrderSortKey, (o: Order) => string | number> = {
+  customer: (o) => o.customer,
+  // Same-day orders fall back to the order id so the order stays stable.
+  date: (o) => `${o.date}-${o.id}`,
+  amount: (o) => o.amount,
+}
+
+const columns: Column<Order, OrderSortKey>[] = [
+  { header: 'Order', cell: (o) => o.id, className: 'font-medium whitespace-nowrap text-slate-700' },
+  {
+    header: 'Customer',
+    sortKey: 'customer',
+    cell: (o) => (
+      <>
+        <p className="font-medium">{o.customer}</p>
+        <p className="text-xs text-slate-500">{o.email}</p>
+      </>
+    ),
+  },
+  { header: 'Product', cell: (o) => o.product, className: 'text-slate-600' },
+  { header: 'Date', sortKey: 'date', cell: (o) => formatDate(o.date), className: 'whitespace-nowrap text-slate-600' },
+  { header: 'Status', cell: (o) => <StatusBadge status={o.status} /> },
+  {
+    header: 'Amount',
+    sortKey: 'amount',
+    align: 'right',
+    cell: (o) => formatCurrency(o.amount),
+    className: 'font-medium whitespace-nowrap tabular-nums',
+  },
+]
+
+const mobileCard = (o: Order) => (
+  <div className="space-y-2">
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <p className="truncate font-medium">{o.customer}</p>
+        <p className="truncate text-xs text-slate-500">{o.product}</p>
+      </div>
+      <p className="font-semibold tabular-nums">{formatCurrency(o.amount)}</p>
+    </div>
+    <div className="flex items-center justify-between text-xs text-slate-500">
+      <span>
+        {o.id} · {formatDate(o.date)}
+      </span>
+      <StatusBadge status={o.status} />
+    </div>
+  </div>
+)
+
+interface OrdersTableProps {
+  orders: Order[]
+  title?: string
+  description?: string
+  pageSize?: number
+  action?: ReactNode
+}
+
+export default function OrdersTable({
+  orders,
+  title = 'Recent orders',
+  description = 'Search, filter and sort the latest transactions.',
+  pageSize,
+  action,
+}: OrdersTableProps) {
+  const table = useTable({
+    items: orders,
+    searchFields,
+    sortAccessors,
+    filterBy,
+    initialSort: { key: 'date', direction: 'desc' },
+    pageSize,
+  })
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white shadow-sm" aria-labelledby="orders-title">
-      <div className="space-y-4 p-4 sm:p-5">
-        <div>
-          <h2 id="orders-title" className="text-base font-semibold">
-            Recent orders
-          </h2>
-          <p className="text-sm text-slate-500">Search, filter and sort the latest transactions.</p>
-        </div>
-        <TableToolbar
-          query={filters.query}
-          status={filters.status}
-          onQueryChange={filters.setQuery}
-          onStatusChange={filters.setStatus}
-        />
-      </div>
-
-      {filters.totalResults === 0 ? (
-        <EmptyState onReset={filters.resetFilters} />
-      ) : (
-        <>
-          {/* Desktop / tablet: full table */}
-          <div className="hidden overflow-x-auto md:block">
-            <table className="w-full text-sm">
-              <thead className="border-y border-slate-100 bg-slate-50 text-xs text-slate-500 uppercase">
-                <tr>
-                  <th scope="col" className="px-4 py-3 text-left font-medium">Order</th>
-                  <SortableHeader label="Customer" sortKey="customer" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
-                  <th scope="col" className="px-4 py-3 text-left font-medium">Product</th>
-                  <SortableHeader label="Date" sortKey="date" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} />
-                  <th scope="col" className="px-4 py-3 text-left font-medium">Status</th>
-                  <SortableHeader label="Amount" sortKey="amount" activeKey={sortKey} direction={sortDirection} onSort={toggleSort} align="right" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {pageItems.map((order) => (
-                  <tr key={order.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium whitespace-nowrap text-slate-700">{order.id}</td>
-                    <td className="px-4 py-3">
-                      <p className="font-medium">{order.customer}</p>
-                      <p className="text-xs text-slate-500">{order.email}</p>
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">{order.product}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-slate-600">{formatDate(order.date)}</td>
-                    <td className="px-4 py-3"><StatusBadge status={order.status} /></td>
-                    <td className="px-4 py-3 text-right font-medium whitespace-nowrap tabular-nums">
-                      {formatCurrency(order.amount)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Mobile: stacked cards instead of a cramped table */}
-          <ul className="divide-y divide-slate-100 border-t border-slate-100 md:hidden">
-            {pageItems.map((order) => (
-              <li key={order.id} className="space-y-2 px-4 py-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{order.customer}</p>
-                    <p className="truncate text-xs text-slate-500">{order.product}</p>
-                  </div>
-                  <p className="font-semibold tabular-nums">{formatCurrency(order.amount)}</p>
-                </div>
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <span>
-                    {order.id} · {formatDate(order.date)}
-                  </span>
-                  <StatusBadge status={order.status} />
-                </div>
-              </li>
-            ))}
-          </ul>
-
-          <Pagination
-            page={filters.page}
-            pageCount={filters.pageCount}
-            pageSize={filters.pageSize}
-            totalResults={filters.totalResults}
-            onPageChange={filters.setPage}
-          />
-        </>
-      )}
-    </section>
+    <DataTable
+      title={title}
+      description={description}
+      table={table}
+      columns={columns}
+      rowKey={(o) => o.id}
+      mobileCard={mobileCard}
+      searchPlaceholder="Search orders, customers, products..."
+      filter={{ label: 'status', allLabel: 'All statuses', options: statuses }}
+      action={action}
+    />
   )
 }
